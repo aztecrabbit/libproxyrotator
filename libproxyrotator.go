@@ -6,7 +6,6 @@ import (
     "log"
 	"fmt"
 	"net"
-	"time"
 	"context"
 
 	"golang.org/x/net/proxy"
@@ -60,14 +59,8 @@ func (p *ProxyRotator) Start() {
 		panic(err)
 	}
 
-	go func() {
-		if err := server.ListenAndServe("tcp", "0.0.0.0:" + p.Port); err != nil {
-			liblog.LogInfo(fmt.Sprintf("Exception\n\n|   %v\n|\n", err), "INFO", liblog.Colors["R1"])
-			os.Exit(0)
-		}
-	}()
-
-	time.Sleep(200 * time.Millisecond)
-
-	liblog.LogInfo("Proxy Rotator running on port " + p.Port, "INFO", liblog.Colors["G1"])
+	if err := server.ListenAndServe("tcp", "0.0.0.0:" + p.Port); err != nil {
+		liblog.LogInfo(fmt.Sprintf("Exception\n\n|   %v\n|\n", err), "INFO", liblog.Colors["R1"])
+		os.Exit(0)
+	}
 }

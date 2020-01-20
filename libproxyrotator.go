@@ -4,7 +4,6 @@ import (
 	"os"
     "io/ioutil"
     "log"
-	"fmt"
 	"net"
 	"context"
 
@@ -60,7 +59,7 @@ func (p *ProxyRotator) Start() {
 	}
 
 	if err := server.ListenAndServe("tcp", "0.0.0.0:" + p.Port); err != nil {
-		liblog.LogInfo(fmt.Sprintf("Exception\n\n|   %v\n|\n", err), "INFO", liblog.Colors["R1"])
+		liblog.LogException(err, "INFO")
 		os.Exit(0)
 	}
 }

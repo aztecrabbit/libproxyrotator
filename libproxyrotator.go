@@ -6,6 +6,7 @@ import (
     "log"
 	"net"
 	"context"
+	"errors"
 
 	"golang.org/x/net/proxy"
 	"github.com/armon/go-socks5"
@@ -13,7 +14,7 @@ import (
 )
 
 var (
-	ConfigDefault = &Config{
+	DefaultConfig = &Config{
 		Port: "3080",
 	}
 )
@@ -27,22 +28,32 @@ type ProxyRotator struct {
 	Proxies []string
 }
 
-func (p *ProxyRotator) RotateProxies() {
-	p.Proxies = append(p.Proxies[1:], p.Proxies[0])
+func (p * ProxyRotator) GetProxy() string {
+	data := p.Proxies[0]
+
+	if len(p.Proxies) > 1 {
+		p.Proxies = append(p.Proxies[1:], p.Proxies[0])
+	}
+
+	return data
+}
+
+func (p *ProxyRotator) DeleteProxy(value string) {
+	for i, data := range p.Proxies {
+		if data == value {
+			p.Proxies = append(p.Proxies[:i], p.Proxies[i+1:]...)
+			break
+		}
+	}
 }
 
 func (p *ProxyRotator) Start() {
 	config := &socks5.Config{
 		Logger: log.New(os.Stdout, "", log.LstdFlags),
 		Dial: func(ctx context.Context, net_, addr string) (net.Conn, error) {
-			var netConn net.Conn
-			var lastError error
+			for i := 0; i < len(p.Proxies); i++ {
+				remoteProxy := p.GetProxy()
 
-			remoteProxies := p.Proxies
-
-			p.RotateProxies()
-
-			for _, remoteProxy := range remoteProxies {
 				dialer, err := proxy.SOCKS5("tcp", remoteProxy, nil, proxy.Direct)
 				if err != nil {
 					panic(err)
@@ -50,14 +61,13 @@ func (p *ProxyRotator) Start() {
 
 				data, err := dialer.Dial(net_, addr)
 				if err != nil {
-					lastError = err
 					continue
 				}
 
-				return data, err
+				return data, nil
 			}
 
-			return netConn, lastError
+			return nil, errors.New("proxies not available")
 		},
 	}
 

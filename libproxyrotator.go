@@ -2,8 +2,8 @@ package libproxyrotator
 
 import (
 	"os"
-    "io/ioutil"
-    "log"
+	"io/ioutil"
+	"log"
 	"net"
 	"context"
 	"errors"
@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/proxy"
 	"github.com/armon/go-socks5"
 	"github.com/aztecrabbit/liblog"
+	"github.com/aztecrabbit/libutils"
 )
 
 var (
@@ -28,19 +29,26 @@ type ProxyRotator struct {
 	Proxies []string
 }
 
-func (p * ProxyRotator) GetProxy() string {
-	data := p.Proxies[0]
+func (p *ProxyRotator) AddProxy(address string) {
+	p.Proxies = append(p.Proxies, address)
+}
+
+func (p *ProxyRotator) GetProxy() string {
+	libutils.Lock.Lock()
+	defer libutils.Lock.Unlock()
+
+	proxyAddress := p.Proxies[0]
 
 	if len(p.Proxies) > 1 {
 		p.Proxies = append(p.Proxies[1:], p.Proxies[0])
 	}
 
-	return data
+	return proxyAddress
 }
 
-func (p *ProxyRotator) DeleteProxy(value string) {
-	for i, data := range p.Proxies {
-		if data == value {
+func (p *ProxyRotator) DeleteProxy(address string) {
+	for i, proxyAddress := range p.Proxies {
+		if proxyAddress == address {
 			p.Proxies = append(p.Proxies[:i], p.Proxies[i+1:]...)
 			break
 		}

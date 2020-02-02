@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"context"
 	"errors"
+	"context"
 
 	"golang.org/x/net/proxy"
 	"github.com/armon/go-socks5"
@@ -33,9 +33,13 @@ func (p *ProxyRotator) AddProxy(address string) {
 	p.Proxies = append(p.Proxies, address)
 }
 
-func (p *ProxyRotator) GetProxy() string {
+func (p *ProxyRotator) GetProxy() (string, error) {
 	libutils.Lock.Lock()
 	defer libutils.Lock.Unlock()
+
+	if len(p.Proxies) == 0 {
+		return "", errors.New("Proxy Address not found")
+	}
 
 	proxyAddress := p.Proxies[0]
 
@@ -43,7 +47,7 @@ func (p *ProxyRotator) GetProxy() string {
 		p.Proxies = append(p.Proxies[1:], p.Proxies[0])
 	}
 
-	return proxyAddress
+	return proxyAddress, nil
 }
 
 func (p *ProxyRotator) DeleteProxy(address string) {
@@ -60,9 +64,12 @@ func (p *ProxyRotator) Start() {
 		Logger: log.New(os.Stdout, "", log.LstdFlags),
 		Dial: func(ctx context.Context, net_, addr string) (net.Conn, error) {
 			for i := 0; i < len(p.Proxies); i++ {
-				remoteProxy := p.GetProxy()
+				proxyAddress, err := p.GetProxy()
+				if err != nil {
+					break
+				}
 
-				dialer, err := proxy.SOCKS5("tcp", remoteProxy, nil, proxy.Direct)
+				dialer, err := proxy.SOCKS5("tcp", proxyAddress, nil, proxy.Direct)
 				if err != nil {
 					panic(err)
 				}

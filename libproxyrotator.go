@@ -1,17 +1,17 @@
 package libproxyrotator
 
 import (
-	"os"
+	"context"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net"
-	"errors"
-	"context"
+	"os"
 
-	"golang.org/x/net/proxy"
 	"github.com/armon/go-socks5"
 	"github.com/aztecrabbit/liblog"
 	"github.com/aztecrabbit/libutils"
+	"golang.org/x/net/proxy"
 )
 
 var (
@@ -25,7 +25,7 @@ type Config struct {
 }
 
 type ProxyRotator struct {
-	Config *Config
+	Config  *Config
 	Proxies []string
 }
 
@@ -93,7 +93,7 @@ func (p *ProxyRotator) Start() {
 		panic(err)
 	}
 
-	if err := server.ListenAndServe("tcp", "0.0.0.0:" + p.Config.Port); err != nil {
+	if err := server.ListenAndServe("tcp", "0.0.0.0:"+p.Config.Port); err != nil {
 		liblog.LogException(err, "INFO")
 		os.Exit(0)
 	}
